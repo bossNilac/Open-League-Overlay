@@ -589,6 +589,11 @@ void saveSettingsAndSyncStartup() {
     AppSettingsStore::syncStartupRegistry(g_state.settings);
 }
 
+void savePreferredUiMode(const std::string& mode) {
+    g_state.settings.preferredUiMode = mode;
+    AppSettingsStore::save(g_state.settings);
+}
+
 void promptStartWithWindowsIfNeeded() {
     if (!scoreboardWindow() || g_state.settings.firstRunStartupPromptShown) {
         return;
@@ -2106,9 +2111,13 @@ void nudgeOverlay(const int dx, const int dy) {
 }
 
 void launchTuiAndExit() {
-    const std::filesystem::path tuiPath = moduleDirectory() / "LOL_overlay.exe";
+    savePreferredUiMode("tui");
+    std::filesystem::path tuiPath = moduleDirectory() / "OpenLeagueOverlay.exe";
+    if (!std::filesystem::exists(tuiPath)) {
+        tuiPath = moduleDirectory() / "LOL_overlay.exe";
+    }
     if (std::filesystem::exists(tuiPath)) {
-        std::wstring commandLine = L"\"" + tuiPath.wstring() + L"\" --no-gui-overlay";
+        std::wstring commandLine = L"\"" + tuiPath.wstring() + L"\" --tui --no-gui-overlay";
         STARTUPINFOW startupInfo{};
         startupInfo.cb = sizeof(startupInfo);
         PROCESS_INFORMATION processInfo{};
@@ -2319,6 +2328,10 @@ LRESULT CALLBACK windowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
             AppPaths::ensureDataDirectories();
             AppPaths::migrateLegacyData(moduleDirectory());
             g_state.settings = AppSettingsStore::load();
+            if (scoreboardWindow()) {
+                g_state.settings.preferredUiMode = "gui";
+                AppSettingsStore::save(g_state.settings);
+            }
             AppSettingsStore::syncStartupRegistry(g_state.settings);
             g_state.configPath = AppPaths::configPath(g_state.startScoreboard ? "scoreboard_config.ini" : "overlay_config.ini");
             g_state.config = loadConfig(g_state.configPath);

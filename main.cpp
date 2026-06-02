@@ -4,6 +4,8 @@
 #include <iostream>
 #include <string>
 
+#include "app_paths.h"
+#include "app_settings.h"
 #include "game_tui.h"
 
 #ifdef _WIN32
@@ -100,6 +102,13 @@ void closeGuiOverlay(GuiOverlayProcess& overlay) {
         overlay.job = nullptr;
     }
 }
+
+void savePreferredUiMode(const std::string& mode) {
+    AppPaths::ensureDataDirectories();
+    AppSettings settings = AppSettingsStore::load();
+    settings.preferredUiMode = mode;
+    AppSettingsStore::save(settings);
+}
 }
 #endif
 
@@ -110,6 +119,8 @@ int main(int argc, char** argv)
     bool once = false;
     bool startGuiOverlay = true;
     bool autoScaleConsoleFont = true;
+    bool forceGui = false;
+    bool forceTui = false;
 
     for (int i = 1; i < argc; ++i) {
         const std::string arg = argv[i];
@@ -125,15 +136,32 @@ int main(int argc, char** argv)
             autoScaleConsoleFont = false;
         } else if (arg == "--no-gui-overlay") {
             startGuiOverlay = false;
+        } else if (arg == "--gui") {
+            forceGui = true;
+        } else if (arg == "--tui") {
+            forceTui = true;
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: LOL_overlay [--once] [--refresh-ms N] [--font-height N] [--no-auto-font] [--no-gui-overlay]\n";
+            std::cout << "Usage: LOL_overlay [--gui] [--tui] [--once] [--refresh-ms N] [--font-height N] [--no-auto-font] [--no-gui-overlay]\n";
             std::cout << "Default refresh: 1000ms\n";
+            std::cout << "--gui opens the GUI dashboard and remembers GUI mode.\n";
+            std::cout << "--tui opens the terminal scoreboard and remembers TUI mode.\n";
             std::cout << "--font-height N forces a smaller/larger Windows console font height, for example 10.\n";
             return 0;
         }
     }
 
 #ifdef _WIN32
+    AppPaths::ensureDataDirectories();
+    AppPaths::migrateLegacyData(AppPaths::moduleDirectory());
+    AppSettings settings = AppSettingsStore::load();
+    if (!forceTui && (forceGui || settings.preferredUiMode == "gui")) {
+        savePreferredUiMode("gui");
+        launchGuiOverlayIfAvailable(false, false);
+        launchGuiOverlayIfAvailable(false, true);
+        return 0;
+    }
+    savePreferredUiMode("tui");
+
     GuiOverlayProcess guiOverlay;
     if (startGuiOverlay) {
         guiOverlay = launchGuiOverlayIfAvailable();
@@ -145,6 +173,7 @@ int main(int argc, char** argv)
 
 #ifdef _WIN32
     if (result == GuiRequestedExitCode) {
+        savePreferredUiMode("gui");
         closeGuiOverlay(guiOverlay);
         launchGuiOverlayIfAvailable(false, false);
         launchGuiOverlayIfAvailable(false, true);

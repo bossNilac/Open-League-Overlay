@@ -69,17 +69,23 @@ To delete local history and settings, close the app and delete:
 
 1. Download the latest Windows x64 release zip from GitHub Releases.
 2. Extract the zip.
-3. Run `LOL_overlay.exe` for the TUI mode, or `LOL_overlay_gui.exe --scoreboard` for the GUI dashboard.
+3. Run `OpenLeagueOverlay.exe`.
 4. Start a League match.
 5. The overlay and scoreboard activate automatically when local live data is available.
 
-Convenience launchers are included:
+The app remembers your last selected UI mode:
 
-- `run-lol-overlay.cmd`
-- `run-lol-overlay-small.cmd`
-- `run-lol-overlay-gui.cmd`
-- `run-lol-overlay-gui-scoreboard.cmd`
+- First run opens the GUI dashboard.
+- Switching to TUI makes the next launch open TUI.
+- Switching back to GUI makes the next launch open GUI.
 
+Advanced command-line options:
+
+```powershell
+OpenLeagueOverlay.exe --gui
+OpenLeagueOverlay.exe --tui
+OpenLeagueOverlay.exe --font-height 10
+```
 ## First Run and Start With Windows
 
 Start with Windows is disabled by default.

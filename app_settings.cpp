@@ -71,6 +71,12 @@ AppSettings load() {
     settings.startWithWindows = root["startWithWindows"].isBool() && root["startWithWindows"].asBool();
     settings.firstRunStartupPromptShown =
         root["firstRunStartupPromptShown"].isBool() && root["firstRunStartupPromptShown"].asBool();
+    if (root["preferredUiMode"].isString()) {
+        const std::string mode = root["preferredUiMode"].asString();
+        if (mode == "tui" || mode == "gui") {
+            settings.preferredUiMode = mode;
+        }
+    }
     return settings;
 }
 
@@ -79,6 +85,7 @@ void save(const AppSettings& settings) {
     Json::Value root(Json::objectValue);
     root["startWithWindows"] = settings.startWithWindows;
     root["firstRunStartupPromptShown"] = settings.firstRunStartupPromptShown;
+    root["preferredUiMode"] = settings.preferredUiMode;
 
     Json::StreamWriterBuilder builder;
     builder["indentation"] = "  ";

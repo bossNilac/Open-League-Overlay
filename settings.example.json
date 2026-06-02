@@ -1,4 +1,5 @@
 {
   "startWithWindows": false,
-  "firstRunStartupPromptShown": false
+  "firstRunStartupPromptShown": false,
+  "preferredUiMode": "gui"
 }

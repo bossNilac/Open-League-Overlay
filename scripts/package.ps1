@@ -56,44 +56,15 @@ if (Test-Path -LiteralPath $distDir) {
 }
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
-Copy-Item -Path (Join-Path $buildDir "*.exe") -Destination $distDir -Force
 Copy-Item -Path (Join-Path $buildDir "*.dll") -Destination $distDir -Force
+Copy-Item -LiteralPath (Join-Path $buildDir "LOL_overlay.exe") -Destination (Join-Path $distDir "OpenLeagueOverlay.exe") -Force
+Copy-Item -LiteralPath (Join-Path $buildDir "LOL_overlay_gui.exe") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "CHANGELOG.md") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "settings.example.json") -Destination $distDir -Force
 if (Test-Path -LiteralPath (Join-Path $repoRoot "LICENSE")) {
     Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination $distDir -Force
 }
-
-$launcher = Join-Path $distDir "run-lol-overlay.cmd"
-@"
-@echo off
-cd /d "%~dp0"
-LOL_overlay.exe
-pause
-"@ | Set-Content -LiteralPath $launcher -Encoding ASCII
-
-$smallLauncher = Join-Path $distDir "run-lol-overlay-small.cmd"
-@"
-@echo off
-cd /d "%~dp0"
-LOL_overlay.exe --font-height 10
-pause
-"@ | Set-Content -LiteralPath $smallLauncher -Encoding ASCII
-
-$guiLauncher = Join-Path $distDir "run-lol-overlay-gui.cmd"
-@"
-@echo off
-cd /d "%~dp0"
-start "" "%~dp0LOL_overlay_gui.exe"
-"@ | Set-Content -LiteralPath $guiLauncher -Encoding ASCII
-
-$guiScoreboardLauncher = Join-Path $distDir "run-lol-overlay-gui-scoreboard.cmd"
-@"
-@echo off
-cd /d "%~dp0"
-start "" "%~dp0LOL_overlay_gui.exe" --scoreboard
-"@ | Set-Content -LiteralPath $guiScoreboardLauncher -Encoding ASCII
 
 if (Test-Path -LiteralPath $zipPathFull) {
     Remove-Item -LiteralPath $zipPathFull -Force

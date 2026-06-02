@@ -6,6 +6,8 @@ set(CMAKE_CXX_STANDARD 20)
 add_executable(LOL_overlay main.cpp
         app_paths.cpp
         app_paths.h
+        app_settings.cpp
+        app_settings.h
         api/api_caller.cpp
         api/api_caller.h
         api/json_parser.cpp
@@ -57,7 +59,7 @@ add_executable(LOL_overlay_gui WIN32
 find_package(CURL CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
 target_link_libraries(LOL_overlay PRIVATE CURL::libcurl)
-target_link_libraries(LOL_overlay PRIVATE jsoncpp_lib)
+target_link_libraries(LOL_overlay PRIVATE jsoncpp_lib advapi32)
 target_link_libraries(LOL_overlay_gui PRIVATE CURL::libcurl jsoncpp_lib user32 gdi32 advapi32)
 
 if (WIN32 AND MINGW)

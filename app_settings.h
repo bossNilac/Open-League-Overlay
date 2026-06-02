@@ -1,9 +1,12 @@
 #ifndef LOL_OVERLAY_APP_SETTINGS_H
 #define LOL_OVERLAY_APP_SETTINGS_H
 
+#include <string>
+
 struct AppSettings {
     bool startWithWindows = false;
     bool firstRunStartupPromptShown = false;
+    std::string preferredUiMode = "gui";
 };
 
 namespace AppSettingsStore {
