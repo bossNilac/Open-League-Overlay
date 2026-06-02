@@ -1,8 +1,65 @@
 # Open League Overlay
 
-A lightweight Windows companion app for League of Legends.
+[![Platform](https://img.shields.io/badge/platform-Windows-0078D6)](#download)
+[![Language](https://img.shields.io/badge/language-C%2B%2B20-00599C)](CMakeLists.txt)
+[![Latest Release](https://img.shields.io/github/v/release/bossNilac/Open-League-Overlay?sort=semver)](https://github.com/bossNilac/Open-League-Overlay/releases/latest)
+[![Windows Build](https://github.com/bossNilac/Open-League-Overlay/actions/workflows/windows-build.yml/badge.svg)](https://github.com/bossNilac/Open-League-Overlay/actions/workflows/windows-build.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-Open League Overlay provides live in-game information, a compact transparent overlay, a TUI scoreboard, a GUI dashboard, local match history, and post-game reports.
+A lightweight Windows companion app for League of Legends with a live overlay, enhanced scoreboard, local match history, and post-game reports.
+
+Open League Overlay is built to stay small and transparent. It reads local League client data, shows useful match information, and keeps saved match data on your machine.
+
+## Download
+
+1. Download the latest Windows x64 zip from [GitHub Releases](https://github.com/bossNilac/Open-League-Overlay/releases/latest).
+2. Extract the zip.
+3. Run `OpenLeagueOverlay.exe`.
+4. Start a League match.
+
+Release users do not need CMake, Ninja, vcpkg, CLion, or other developer tools. The app activates automatically when League live data is available in an active match.
+
+Release downloads include a `.sha256` checksum file. To verify a downloaded zip in PowerShell:
+
+```powershell
+Get-FileHash .\OpenLeagueOverlay-v1.0.0-windows-x64.zip -Algorithm SHA256
+```
+
+Compare the hash with `OpenLeagueOverlay-v1.0.0-windows-x64.zip.sha256`.
+
+## Preview
+
+Screenshots are intentionally kept out of the repository until they are sanitized. Add censored PNGs with these filenames under `docs/screenshots/` and the previews below will render on GitHub.
+
+See [docs/screenshots/README.md](docs/screenshots/README.md) for capture guidelines.
+
+### GUI Dashboard
+
+![GUI dashboard](docs/screenshots/gui-dashboard.png)
+
+### In-Game Overlay
+
+![Overlay team mode](docs/screenshots/overlay-team-mode.png)
+
+![Overlay lane mode](docs/screenshots/overlay-lane-mode.png)
+
+### Scoreboards
+
+![GUI scoreboard](docs/screenshots/gui-scoreboard.png)
+
+![TUI scoreboard](docs/screenshots/tui-scoreboard.png)
+
+### Reports
+
+![Match history](docs/screenshots/match-history.png)
+
+![Match report](docs/screenshots/match-report.png)
+
+### Champion Select
+
+![Champion select overlay](docs/screenshots/champ-select-overlay.png)
+
+![Champion select GUI](docs/screenshots/champ-select-gui.png)
 
 ## Features
 
@@ -140,6 +197,10 @@ scripts\package_release.cmd
 Release output:
 
 `dist\OpenLeagueOverlay-v1.0.0-windows-x64.zip`
+
+The packaging script also writes:
+
+`dist\OpenLeagueOverlay-v1.0.0-windows-x64.zip.sha256`
 
 If you prefer PowerShell directly, use:
 
