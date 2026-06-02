@@ -39,9 +39,9 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for capture guideli
 
 ### In-Game Overlay
 
-![Overlay team mode](docs/screenshots/overlay-team-mode.png)
+![Overlay team mode](docs/screenshots/overlay-team-mode.jpg)
 
-![Overlay lane mode](docs/screenshots/overlay-lane-mode.png)
+![Overlay lane mode](docs/screenshots/overlay-lane-mode.jpg)
 
 ### Scoreboards
 

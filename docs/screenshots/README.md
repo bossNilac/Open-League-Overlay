@@ -5,8 +5,8 @@ Place sanitized release-build screenshots in this folder.
 Recommended files:
 
 - `gui-dashboard.png`
-- `overlay-team-mode.png`
-- `overlay-lane-mode.png`
+- `overlay-team-mode.jpg`
+- `overlay-lane-mode.jpg`
 - `gui-scoreboard.png`
 - `tui-scoreboard.png`
 - `match-history.png`
