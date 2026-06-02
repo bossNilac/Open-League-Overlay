@@ -32,16 +32,18 @@ struct ItemSetRecommendation {
     std::string source;
 };
 
-struct MatchupGuideRecommendation {
-    RuneRecommendation runes;
-    ItemSetRecommendation items;
-};
-
 struct CounterRecord {
     std::string championName;
     std::string relation;
     double myWinRate = -1.0;
     int games = 0;
+};
+
+struct MatchupGuideRecommendation {
+    RuneRecommendation runes;
+    ItemSetRecommendation items;
+    CounterRecord counter;
+    bool counterOk = false;
 };
 
 struct AnalysisCache {
@@ -52,7 +54,14 @@ struct AnalysisCache {
     std::chrono::steady_clock::time_point fetchedAt{};
 };
 
+struct MatchupGuideCacheEntry {
+    std::string key;
+    MatchupGuideRecommendation guide;
+    std::chrono::steady_clock::time_point fetchedAt{};
+};
+
 AnalysisCache analysisCache;
+std::vector<MatchupGuideCacheEntry> matchupGuideCache;
 std::string importedRuneKey;
 std::string importedItemSetKey;
 
@@ -111,6 +120,16 @@ std::string firstTextContent(const Json::Value& root) {
     return root["result"]["content"][0]["text"].isString()
         ? root["result"]["content"][0]["text"].asString()
         : "";
+}
+
+std::string relationForWinRate(const double winRate) {
+    if (winRate >= 52.0) {
+        return "favored";
+    }
+    if (winRate <= 48.0) {
+        return "hard";
+    }
+    return "even";
 }
 
 std::string postMcpTool(const std::string& name, const std::string& argumentsJson) {
@@ -200,7 +219,45 @@ std::string joinNames(const Json::Value& value, const size_t maxItems) {
     return result.empty() ? "-" : result;
 }
 
-MatchupGuideRecommendation recommendationFromJsonGuide(const std::string& guideText) {
+CounterRecord counterFromJsonGuide(const Json::Value& meta, const std::string& enemyChampion) {
+    CounterRecord result;
+    result.championName = enemyChampion;
+    result.relation = "NA";
+
+    const std::string enemyKey = ChampionCatalog::opggNameForChampion(enemyChampion);
+    const Json::Value& positions = meta["data"]["summary"]["positions"];
+    if (enemyKey.empty() || !positions.isArray()) {
+        return result;
+    }
+
+    for (const Json::Value& position : positions) {
+        const Json::Value& counters = position["counters"];
+        if (!counters.isArray()) {
+            continue;
+        }
+        for (const Json::Value& counter : counters) {
+            const std::string counterName = asString(counter["champion_name"]);
+            if (ChampionCatalog::opggNameForChampion(counterName) != enemyKey) {
+                continue;
+            }
+            const int play = asInt(counter["play"]);
+            const int win = asInt(counter["win"]);
+            if (play <= 0) {
+                return result;
+            }
+            const double winRate = (static_cast<double>(win) / static_cast<double>(play)) * 100.0;
+            result.championName = counterName.empty() ? enemyChampion : counterName;
+            result.relation = relationForWinRate(winRate);
+            result.myWinRate = winRate;
+            result.games = play;
+            return result;
+        }
+    }
+    return result;
+}
+
+MatchupGuideRecommendation recommendationFromJsonGuide(const std::string& guideText,
+                                                       const std::string& enemyChampion = "") {
     MatchupGuideRecommendation recommendation;
     Json::Value meta;
     std::string parseError;
@@ -208,8 +265,24 @@ MatchupGuideRecommendation recommendationFromJsonGuide(const std::string& guideT
         return recommendation;
     }
 
-    const Json::Value& runes = meta["data"]["runes"][0];
-    if (runes.isObject()) {
+    if (!enemyChampion.empty()) {
+        recommendation.counter = counterFromJsonGuide(meta, enemyChampion);
+        recommendation.counterOk = recommendation.counter.myWinRate >= 0.0;
+    }
+
+    const Json::Value& data = meta["data"];
+    const Json::Value* runeBuild = nullptr;
+    if (data["runes"].isArray() && !data["runes"].empty() && data["runes"][0].isObject()) {
+        runeBuild = &data["runes"][0];
+    } else if (data["rune_pages"].isArray() && !data["rune_pages"].empty()) {
+        const Json::Value& builds = data["rune_pages"][0]["builds"];
+        if (builds.isArray() && !builds.empty() && builds[0].isObject()) {
+            runeBuild = &builds[0];
+        }
+    }
+
+    if (runeBuild) {
+        const Json::Value& runes = *runeBuild;
         recommendation.runes.primaryStyleId = asInt(runes["primary_page_id"]);
         recommendation.runes.subStyleId = asInt(runes["secondary_page_id"]);
         recommendation.runes.selectedPerkIds = jsonIntArray(runes["primary_rune_ids"]);
@@ -228,7 +301,6 @@ MatchupGuideRecommendation recommendationFromJsonGuide(const std::string& guideT
         recommendation.runes.lines.push_back("Secondary: " + joinNames(runes["secondary_rune_names"], 3));
     }
 
-    const Json::Value& data = meta["data"];
     if (data["core_items"].isArray() && !data["core_items"].empty()) {
         recommendation.items.coreItemIds = jsonItemIdArray(data["core_items"][0]["ids"], 3);
     }
@@ -315,16 +387,6 @@ ItemSetRecommendation parseGenericItemsFromAnalysis(const std::string& text) {
 
 std::vector<CounterRecord> parseCountersFromAnalysis(const std::string& text) {
     std::vector<CounterRecord> counters;
-    const auto relationForWinRate = [](const double winRate) {
-        if (winRate >= 52.0) {
-            return "favored";
-        }
-        if (winRate <= 48.0) {
-            return "hard";
-        }
-        return "even";
-    };
-
     const auto addOrUpdate = [&counters](CounterRecord record) {
         const std::string key = ChampionCatalog::opggNameForChampion(record.championName);
         for (CounterRecord& existing : counters) {
@@ -386,12 +448,38 @@ MatchupGuideRecommendation fetchMatchupGuide(const std::string& myChampion, cons
         return {};
     }
 
+    const std::string myKey = ChampionCatalog::opggNameForChampion(myChampion);
+    const std::string enemyKey = ChampionCatalog::opggNameForChampion(enemyChampion);
+    const std::string opggPosition = roleToOpgg(position);
+    const std::string key = myKey + "|" + enemyKey + "|" + opggPosition;
+    const auto now = std::chrono::steady_clock::now();
+    for (const MatchupGuideCacheEntry& entry : matchupGuideCache) {
+        if (entry.key == key && now - entry.fetchedAt < std::chrono::minutes(10)) {
+            return entry.guide;
+        }
+    }
+
     std::ostringstream args;
-    args << R"({"position":")" << jsonEscape(roleToOpgg(position))
-         << R"(","my_champion":")" << jsonEscape(ChampionCatalog::opggNameForChampion(myChampion))
-         << R"(","opponent_champion":")" << jsonEscape(ChampionCatalog::opggNameForChampion(enemyChampion))
+    args << R"({"position":")" << jsonEscape(opggPosition)
+         << R"(","my_champion":")" << jsonEscape(myKey)
+         << R"(","opponent_champion":")" << jsonEscape(enemyKey)
          << R"(","lang":"en_US"})";
-    return recommendationFromJsonGuide(postMcpTool("lol_get_lane_matchup_guide", args.str()));
+    const std::string text = postMcpTool("lol_get_lane_matchup_guide", args.str());
+    MatchupGuideRecommendation guide = text.empty()
+        ? MatchupGuideRecommendation{}
+        : recommendationFromJsonGuide(text, enemyChampion);
+
+    matchupGuideCache.erase(std::remove_if(matchupGuideCache.begin(), matchupGuideCache.end(),
+                                           [&](const MatchupGuideCacheEntry& entry) {
+                                               return entry.key == key ||
+                                                      now - entry.fetchedAt >= std::chrono::minutes(10);
+                                           }),
+                            matchupGuideCache.end());
+    matchupGuideCache.push_back(MatchupGuideCacheEntry{key, guide, now});
+    if (matchupGuideCache.size() > 32) {
+        matchupGuideCache.erase(matchupGuideCache.begin());
+    }
+    return guide;
 }
 
 Json::Value findParticipantByCell(const Json::Value& participants, const int cellId) {
@@ -756,13 +844,28 @@ bool pollChampSelectState(ChampSelectState& state, const bool autoImportRunes) {
         ? AnalysisCache{}
         : fetchChampionAnalysis(state.myChampionName, state.myPosition);
 
+    std::vector<std::string> visibleEnemies;
     if (session["theirTeam"].isArray()) {
         for (const Json::Value& enemy : session["theirTeam"]) {
             const std::string enemyName = championNameFromParticipant(enemy, false);
             if (!enemyName.empty()) {
-                state.enemyCounters.push_back(counterForEnemy(enemyName, analysis.counters));
+                visibleEnemies.push_back(enemyName);
             }
         }
+    }
+
+    for (const std::string& enemyName : visibleEnemies) {
+        EnemyChampionCounter counter = counterForEnemy(enemyName, analysis.counters);
+        if (!state.myChampionName.empty() && counter.myWinRate < 0.0) {
+            const MatchupGuideRecommendation guide =
+                fetchMatchupGuide(state.myChampionName, enemyName, state.myPosition);
+            if (guide.counterOk) {
+                counter.relation = guide.counter.relation;
+                counter.myWinRate = guide.counter.myWinRate;
+                counter.games = guide.counter.games;
+            }
+        }
+        state.enemyCounters.push_back(counter);
     }
 
     if (!state.myChampionName.empty()) {

@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <cctype>
+#include <cwctype>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -816,6 +817,8 @@ void pollLiveData() {
             g_state.stats = {};
             showOverlay();
             InvalidateRect(g_state.hwnd, nullptr, FALSE);
+        } else if (!shouldPollChampSelect && g_state.champSelect.visible) {
+            showOverlay();
         } else {
             g_state.champSelect = {};
             if (scoreboardWindow()) {
@@ -933,8 +936,17 @@ void refreshMetaForSelf(const LaneOverlayStats& stats) {
     if (data["core_items"].isArray() && !data["core_items"].empty()) {
         lines.push_back(L"Core: " + joinJsonStringArray(data["core_items"][0]["ids_names"], 4));
     }
-    if (data["runes"].isArray() && !data["runes"].empty()) {
-        const Json::Value& runes = data["runes"][0];
+    const Json::Value* runeBuild = nullptr;
+    if (data["runes"].isArray() && !data["runes"].empty() && data["runes"][0].isObject()) {
+        runeBuild = &data["runes"][0];
+    } else if (data["rune_pages"].isArray() && !data["rune_pages"].empty()) {
+        const Json::Value& builds = data["rune_pages"][0]["builds"];
+        if (builds.isArray() && !builds.empty() && builds[0].isObject()) {
+            runeBuild = &builds[0];
+        }
+    }
+    if (runeBuild) {
+        const Json::Value& runes = *runeBuild;
         lines.push_back(L"Runes: " + utf8ToWide(runes["primary_page_name"].asString()) + L" [" +
                         joinJsonStringArray(runes["primary_rune_names"], 4) + L"]");
         lines.push_back(L"Secondary: " + utf8ToWide(runes["secondary_page_name"].asString()) + L" [" +
