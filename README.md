@@ -73,6 +73,11 @@ To delete local history and settings, close the app and delete:
 4. Start a League match.
 5. The overlay and scoreboard activate automatically when local live data is available.
 
+The release contains clearly named executables:
+
+- `OpenLeagueOverlay.exe` starts the remembered UI mode and provides the TUI when TUI mode is selected.
+- `OpenLeagueOverlayGui.exe` is the GUI dashboard and lightweight overlay executable.
+
 The app remembers your last selected UI mode:
 
 - First run opens the GUI dashboard.
@@ -175,8 +180,23 @@ Check the GUI dashboard setting and Windows startup permissions for the current 
 
 - No Riot account password is required.
 - No Riot API key is required for live in-game data.
-- Saved match data stays local.
+- The app uses the local League Live Client Data API for live in-game data.
+- Saved match data stays local under `%LOCALAPPDATA%\OpenLeagueOverlay\`.
+- Saved matches, reports, logs, snapshots, cache, and local settings are not included in release packages.
+- The app does not upload saved matches or reports.
 - No process injection is used.
+- No DirectX hooking is used.
 - No memory reading is used.
 - No gameplay automation is used.
+- No game files are modified.
+- The executables request normal user privileges only and do not require administrator rights.
 - Start with Windows is optional and can be disabled anytime.
+- Start with Windows is disabled by default, prompts before enabling, and uses only `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+- Enemy gold is an inventory-value estimate, not exact total gold.
+- Match history exists only for games played while the app was running.
+
+## Windows Security and SmartScreen
+
+The Windows release is a normal portable zip, not a packed self-extracting launcher. It does not use UPX, bundled installers, hidden updaters, scheduled tasks, or silent startup registration.
+
+Current public builds are unsigned. Because the project is new and unsigned, Microsoft Defender SmartScreen may still warn until the executable earns reputation or the project is code signed. If Windows flags a release that you downloaded from the official GitHub Release, submit the zip or `OpenLeagueOverlay.exe` to Microsoft Security Intelligence for review.

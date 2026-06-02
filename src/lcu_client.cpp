@@ -6,7 +6,8 @@
 #include "lcu_client.h"
 
 #include <windows.h>
-#include <tlhelp32.h>
+
+#include "api/json_parser.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -16,16 +17,16 @@
 #include <vector>
 
 namespace {
-std::string wideToUtf8(const std::wstring& text) {
+std::wstring utf8ToWide(const std::string& text) {
     if (text.empty()) {
-        return "";
+        return L"";
     }
-    const int size = WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
+    const int size = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), nullptr, 0);
     if (size <= 0) {
-        return "";
+        return L"";
     }
-    std::string result(static_cast<size_t>(size), '\0');
-    WideCharToMultiByte(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), result.data(), size, nullptr, nullptr);
+    std::wstring result(static_cast<size_t>(size), L'\0');
+    MultiByteToWideChar(CP_UTF8, 0, text.c_str(), static_cast<int>(text.size()), result.data(), size);
     return result;
 }
 
@@ -51,37 +52,68 @@ std::vector<std::filesystem::path> commonLockfilePaths() {
     return paths;
 }
 
-std::vector<std::filesystem::path> processLockfilePaths() {
+void appendUniquePath(std::vector<std::filesystem::path>& paths, const std::filesystem::path& path) {
+    const auto normalized = path.lexically_normal();
+    const auto exists = std::any_of(paths.begin(), paths.end(), [&](const std::filesystem::path& current) {
+        return _wcsicmp(current.wstring().c_str(), normalized.wstring().c_str()) == 0;
+    });
+    if (!exists) {
+        paths.push_back(normalized);
+    }
+}
+
+void collectLeagueInstallPaths(const Json::Value& value, std::vector<std::filesystem::path>& paths) {
+    if (value.isString()) {
+        std::string text = value.asString();
+        std::replace(text.begin(), text.end(), '/', '\\');
+        const std::wstring wide = utf8ToWide(text);
+        if (wide.find(L"League of Legends") != std::wstring::npos) {
+            appendUniquePath(paths, std::filesystem::path(wide) / L"lockfile");
+        }
+        return;
+    }
+
+    if (value.isObject()) {
+        for (const std::string& name : value.getMemberNames()) {
+            std::string key = name;
+            std::replace(key.begin(), key.end(), '/', '\\');
+            const std::wstring wideKey = utf8ToWide(key);
+            if (wideKey.find(L"League of Legends") != std::wstring::npos) {
+                appendUniquePath(paths, std::filesystem::path(wideKey) / L"lockfile");
+            }
+            collectLeagueInstallPaths(value[name], paths);
+        }
+        return;
+    }
+
+    if (value.isArray()) {
+        for (const Json::Value& child : value) {
+            collectLeagueInstallPaths(child, paths);
+        }
+    }
+}
+
+std::vector<std::filesystem::path> riotInstallLockfilePaths() {
     std::vector<std::filesystem::path> paths;
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) {
+    const std::wstring programData = envPath(L"PROGRAMDATA");
+    if (programData.empty()) {
         return paths;
     }
 
-    PROCESSENTRY32W entry{};
-    entry.dwSize = sizeof(entry);
-    for (BOOL ok = Process32FirstW(snapshot, &entry); ok; ok = Process32NextW(snapshot, &entry)) {
-        const std::wstring exe = entry.szExeFile;
-        if (_wcsicmp(exe.c_str(), L"LeagueClient.exe") != 0 &&
-            _wcsicmp(exe.c_str(), L"LeagueClientUx.exe") != 0 &&
-            _wcsicmp(exe.c_str(), L"LeagueClientUxRender.exe") != 0) {
-            continue;
-        }
-
-        HANDLE process = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ProcessID);
-        if (!process) {
-            continue;
-        }
-
-        wchar_t imagePath[MAX_PATH] = {};
-        DWORD length = MAX_PATH;
-        if (QueryFullProcessImageNameW(process, 0, imagePath, &length)) {
-            paths.emplace_back(std::filesystem::path(imagePath).parent_path() / L"lockfile");
-        }
-        CloseHandle(process);
+    const std::filesystem::path installsPath =
+        std::filesystem::path(programData) / L"Riot Games" / L"RiotClientInstalls.json";
+    std::ifstream input(installsPath);
+    if (!input) {
+        return paths;
     }
 
-    CloseHandle(snapshot);
+    std::stringstream buffer;
+    buffer << input.rdbuf();
+    Json::Value root;
+    std::string error;
+    if (parseApiJson(buffer.str(), root, error)) {
+        collectLeagueInstallPaths(root, paths);
+    }
     return paths;
 }
 
@@ -122,9 +154,11 @@ std::string endpointUrl(const LcuConnection& connection, std::string path) {
 namespace LcuClient {
 LcuConnection discover() {
     LcuConnection connection;
-    std::vector<std::filesystem::path> paths = processLockfilePaths();
+    std::vector<std::filesystem::path> paths = riotInstallLockfilePaths();
     const std::vector<std::filesystem::path> commonPaths = commonLockfilePaths();
-    paths.insert(paths.end(), commonPaths.begin(), commonPaths.end());
+    for (const std::filesystem::path& path : commonPaths) {
+        appendUniquePath(paths, path);
+    }
 
     for (const std::filesystem::path& path : paths) {
         if (readLockfile(path, connection)) {

@@ -57,8 +57,8 @@ if (Test-Path -LiteralPath $distDir) {
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
 
 Copy-Item -Path (Join-Path $buildDir "*.dll") -Destination $distDir -Force
-Copy-Item -LiteralPath (Join-Path $buildDir "LOL_overlay.exe") -Destination (Join-Path $distDir "OpenLeagueOverlay.exe") -Force
-Copy-Item -LiteralPath (Join-Path $buildDir "LOL_overlay_gui.exe") -Destination $distDir -Force
+Copy-Item -LiteralPath (Join-Path $buildDir "OpenLeagueOverlay.exe") -Destination $distDir -Force
+Copy-Item -LiteralPath (Join-Path $buildDir "OpenLeagueOverlayGui.exe") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "CHANGELOG.md") -Destination $distDir -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "settings.example.json") -Destination $distDir -Force

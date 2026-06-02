@@ -4,7 +4,6 @@
 #endif
 
 #include <windows.h>
-#include <tlhelp32.h>
 #include <windowsx.h>
 
 #include "app_paths.h"
@@ -461,36 +460,27 @@ bool scoreboardWindow() {
     return g_state.startScoreboard;
 }
 
-bool processNameEquals(const wchar_t* lhs, const wchar_t* rhs) {
-    return _wcsicmp(lhs, rhs) == 0;
+std::wstring lowerWide(std::wstring text) {
+    std::transform(text.begin(), text.end(), text.begin(), [](const wchar_t ch) {
+        return static_cast<wchar_t>(std::towlower(ch));
+    });
+    return text;
 }
 
-std::wstring processNameForPid(const DWORD processId) {
-    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-    if (snapshot == INVALID_HANDLE_VALUE) {
-        return {};
-    }
-
-    PROCESSENTRY32W entry{};
-    entry.dwSize = sizeof(entry);
-    std::wstring name;
-    if (Process32FirstW(snapshot, &entry)) {
-        do {
-            if (entry.th32ProcessID == processId) {
-                name = entry.szExeFile;
-                break;
-            }
-        } while (Process32NextW(snapshot, &entry));
-    }
-    CloseHandle(snapshot);
-    return name;
+std::wstring windowText(HWND hwnd) {
+    wchar_t buffer[512] = {};
+    GetWindowTextW(hwnd, buffer, static_cast<int>(std::size(buffer)));
+    return buffer;
 }
 
-bool leagueSurfaceProcessName(const std::wstring& name) {
-    return processNameEquals(name.c_str(), L"League of Legends.exe") ||
-           processNameEquals(name.c_str(), L"LeagueClient.exe") ||
-           processNameEquals(name.c_str(), L"LeagueClientUx.exe") ||
-           processNameEquals(name.c_str(), L"LeagueClientUxRender.exe");
+std::wstring windowClassName(HWND hwnd) {
+    wchar_t buffer[256] = {};
+    GetClassNameW(hwnd, buffer, static_cast<int>(std::size(buffer)));
+    return buffer;
+}
+
+bool containsWide(const std::wstring& haystack, const wchar_t* needle) {
+    return haystack.find(needle) != std::wstring::npos;
 }
 
 bool leagueSurfaceFocused() {
@@ -499,13 +489,12 @@ bool leagueSurfaceFocused() {
         return false;
     }
 
-    DWORD processId = 0;
-    GetWindowThreadProcessId(foreground, &processId);
-    if (!processId) {
-        return false;
-    }
-
-    return leagueSurfaceProcessName(processNameForPid(processId));
+    const std::wstring title = lowerWide(windowText(foreground));
+    const std::wstring className = lowerWide(windowClassName(foreground));
+    return containsWide(title, L"league of legends") ||
+           containsWide(title, L"league client") ||
+           containsWide(className, L"league") ||
+           containsWide(className, L"riot");
 }
 
 bool pointInRect(const POINT point, const RECT rect) {

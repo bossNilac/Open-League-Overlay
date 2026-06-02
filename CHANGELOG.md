@@ -21,3 +21,12 @@ Added:
 - Optional rune and item-set export when supported by the local League client
 - Optional Start with Windows support
 - Local-only storage for user match data
+
+Release hygiene rebuild:
+
+- Added Windows executable version metadata.
+- Added normal-user Windows application manifests.
+- Kept Start with Windows opt-in and HKCU-only.
+- Packaged only required executables, runtime DLLs, docs, and example settings.
+- Excluded local user data, reports, logs, snapshots, cache, and settings from the release zip.
+- Rebuilt the Windows x64 package without a version bump.

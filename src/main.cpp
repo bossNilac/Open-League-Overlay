@@ -44,7 +44,10 @@ GuiOverlayProcess launchGuiOverlayIfAvailable(const bool manageLifetime = true, 
         return {};
     }
 
-    const std::filesystem::path guiPath = std::filesystem::path(modulePath).parent_path() / "LOL_overlay_gui.exe";
+    std::filesystem::path guiPath = std::filesystem::path(modulePath).parent_path() / "OpenLeagueOverlayGui.exe";
+    if (!std::filesystem::exists(guiPath)) {
+        guiPath = std::filesystem::path(modulePath).parent_path() / "LOL_overlay_gui.exe";
+    }
     if (!std::filesystem::exists(guiPath)) {
         return {};
     }
@@ -141,7 +144,7 @@ int main(int argc, char** argv)
         } else if (arg == "--tui") {
             forceTui = true;
         } else if (arg == "--help" || arg == "-h") {
-            std::cout << "Usage: LOL_overlay [--gui] [--tui] [--once] [--refresh-ms N] [--font-height N] [--no-auto-font] [--no-gui-overlay]\n";
+            std::cout << "Usage: OpenLeagueOverlay [--gui] [--tui] [--once] [--refresh-ms N] [--font-height N] [--no-auto-font] [--no-gui-overlay]\n";
             std::cout << "Default refresh: 1000ms\n";
             std::cout << "--gui opens the GUI dashboard and remembers GUI mode.\n";
             std::cout << "--tui opens the terminal scoreboard and remembers TUI mode.\n";

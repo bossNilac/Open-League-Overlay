@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.2.2)
-project(LOL_overlay)
+project(LOL_overlay LANGUAGES CXX RC)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -32,6 +32,7 @@ set(COMMON_HEADERS
 add_executable(LOL_overlay
         src/main.cpp
         src/game_tui.cpp
+        resources/open_league_overlay.rc
         include/game_tui.h
         ${COMMON_SOURCES}
         ${COMMON_HEADERS}
@@ -41,11 +42,15 @@ add_executable(LOL_overlay_gui WIN32
         src/overlay_main.cpp
         src/overlay_data.cpp
         src/match_history.cpp
+        resources/open_league_overlay_gui.rc
         include/overlay_data.h
         include/match_history.h
         ${COMMON_SOURCES}
         ${COMMON_HEADERS}
 )
+
+set_target_properties(LOL_overlay PROPERTIES OUTPUT_NAME OpenLeagueOverlay)
+set_target_properties(LOL_overlay_gui PROPERTIES OUTPUT_NAME OpenLeagueOverlayGui)
 
 target_include_directories(LOL_overlay PRIVATE include)
 target_include_directories(LOL_overlay_gui PRIVATE include)
