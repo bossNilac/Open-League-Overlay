@@ -109,19 +109,27 @@ Requirements used by this project:
 Example build commands from this repository:
 
 ```powershell
-$env:PATH='C:\Program Files\JetBrains\CLion 2026.1\bin\mingw\bin;' + $env:PATH
-& 'C:\Program Files\JetBrains\CLion 2026.1\bin\cmake\win\x64\bin\cmake.exe' --build cmake-build-release --config Release
+scripts\build_release.cmd
 ```
 
 Package a release:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\package.ps1
+```bat
+scripts\package_release.cmd
 ```
 
 Release output:
 
 `dist\OpenLeagueOverlay-v1.0.0-windows-x64.zip`
+
+If you prefer PowerShell directly, use:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_release.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\package_release.ps1
+```
+
+The `.cmd` wrappers are included so downloaded source archives can build without changing the system-wide PowerShell execution policy.
 
 ## Troubleshooting
 
