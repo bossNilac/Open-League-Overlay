@@ -43,6 +43,8 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for capture guideli
 
 ![Overlay lane mode](docs/screenshots/overlay-lane-mode.jpg)
 
+![Overlay you mode](docs/screenshots/overlay-you-mode.jpg)
+
 ### Scoreboards
 
 ![GUI scoreboard](docs/screenshots/gui-scoreboard.png)
