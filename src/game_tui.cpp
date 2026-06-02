@@ -1265,12 +1265,14 @@ void GameTui::renderChampSelect(const ChampSelectState& state) {
     if (state.enemyCounters.empty()) {
         out << Dim << "Waiting for enemy picks to become visible in champ select." << Reset << '\n';
     } else {
-        out << std::left << std::setw(16) << "Champion"
+        out << std::left << std::setw(6) << "Role"
+            << std::setw(16) << "Champion"
             << std::setw(18) << "Matchup"
             << std::setw(10) << "Agg WR"
             << "Games\n";
         for (const EnemyChampionCounter& enemy : state.enemyCounters) {
-            out << Red << std::left << std::setw(16) << enemy.championName << Reset
+            out << Dim << std::left << std::setw(6) << (enemy.position.empty() ? "-" : enemy.position) << Reset
+                << Red << std::setw(16) << enemy.championName << Reset
                 << std::setw(18) << enemy.relation;
             if (enemy.myWinRate >= 0.0) {
                 out << Gold << std::setw(10) << (formatDouble(enemy.myWinRate, 1) + "%") << Reset

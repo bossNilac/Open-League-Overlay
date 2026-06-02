@@ -6,6 +6,7 @@
 
 struct EnemyChampionCounter {
     std::string championName;
+    std::string position;
     std::string relation;
     double myWinRate = -1.0;
     int games = 0;

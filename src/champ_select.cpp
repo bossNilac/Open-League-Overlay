@@ -34,6 +34,7 @@ struct ItemSetRecommendation {
 
 struct CounterRecord {
     std::string championName;
+    std::string position;
     std::string relation;
     double myWinRate = -1.0;
     int games = 0;
@@ -222,18 +223,17 @@ std::string joinNames(const Json::Value& value, const size_t maxItems) {
 CounterRecord counterFromJsonGuide(const Json::Value& meta, const std::string& enemyChampion) {
     CounterRecord result;
     result.championName = enemyChampion;
+    result.position = roleLabel(asString(meta["position"]));
     result.relation = "NA";
 
     const std::string enemyKey = ChampionCatalog::opggNameForChampion(enemyChampion);
-    const Json::Value& positions = meta["data"]["summary"]["positions"];
-    if (enemyKey.empty() || !positions.isArray()) {
+    if (enemyKey.empty()) {
         return result;
     }
 
-    for (const Json::Value& position : positions) {
-        const Json::Value& counters = position["counters"];
+    const auto readCounters = [&](const Json::Value& counters) {
         if (!counters.isArray()) {
-            continue;
+            return false;
         }
         for (const Json::Value& counter : counters) {
             const std::string counterName = asString(counter["champion_name"]);
@@ -243,15 +243,50 @@ CounterRecord counterFromJsonGuide(const Json::Value& meta, const std::string& e
             const int play = asInt(counter["play"]);
             const int win = asInt(counter["win"]);
             if (play <= 0) {
-                return result;
+                return false;
             }
             const double winRate = (static_cast<double>(win) / static_cast<double>(play)) * 100.0;
             result.championName = counterName.empty() ? enemyChampion : counterName;
+            if (result.position.empty() || result.position == "ANY") {
+                result.position = roleLabel(asString(meta["position"]));
+            }
             result.relation = relationForWinRate(winRate);
             result.myWinRate = winRate;
             result.games = play;
-            return result;
+            return true;
         }
+        return false;
+    };
+
+    if (readCounters(meta["data"]["counters"])) {
+        return result;
+    }
+
+    const Json::Value& positions = meta["data"]["summary"]["positions"];
+    if (positions.isArray()) {
+        for (const Json::Value& position : positions) {
+            if (readCounters(position["counters"])) {
+                if (result.position.empty() || result.position == "ANY") {
+                    result.position = roleLabel(asString(position["name"]));
+                }
+                return result;
+            }
+        }
+    }
+
+    const std::string laneAdvantage = asString(meta["data"]["lane_advantage_champion"]);
+    const std::string style = asString(meta["data"]["recommended_play_style"]);
+    if (!laneAdvantage.empty() && laneAdvantage != "null") {
+        const std::string myChampion = asString(meta["my_champion"]);
+        if (ChampionCatalog::opggNameForChampion(laneAdvantage) == ChampionCatalog::opggNameForChampion(myChampion)) {
+            result.relation = "favored";
+        } else if (laneAdvantage == "EVEN" || laneAdvantage == "even") {
+            result.relation = "even";
+        } else {
+            result.relation = "hard";
+        }
+    } else if (!style.empty() && style != "null") {
+        result.relation = style;
     }
     return result;
 }
@@ -406,6 +441,7 @@ std::vector<CounterRecord> parseCountersFromAnalysis(const std::string& text) {
         const double winRate = play > 0 ? (static_cast<double>(win) / static_cast<double>(play)) * 100.0 : -1.0;
         addOrUpdate(CounterRecord{
             match[3].str(),
+            "",
             winRate >= 0.0 ? relationForWinRate(winRate) : "NA",
             winRate,
             play
@@ -653,7 +689,7 @@ Json::Value itemSetBody(const ItemSetRecommendation& recommendation, const int c
     Json::Value blocks(Json::arrayValue);
     if (!recommendation.coreItemIds.empty()) {
         Json::Value core(Json::objectValue);
-        core["type"] = "OP.GG Core";
+        core["type"] = "Build Recommendation";
         Json::Value items(Json::arrayValue);
         for (const int itemId : recommendation.coreItemIds) {
             items.append(itemObject(itemId));
@@ -791,9 +827,11 @@ bool importRunePage(const LcuConnection& connection, const RuneRecommendation& r
     return true;
 }
 
-EnemyChampionCounter counterForEnemy(const std::string& enemyName, const std::vector<CounterRecord>& counters) {
+EnemyChampionCounter counterForEnemy(const std::string& enemyName, const std::string& position,
+                                     const std::vector<CounterRecord>& counters) {
     EnemyChampionCounter result;
     result.championName = enemyName;
+    result.position = position;
     result.relation = "NA";
     const std::string enemyKey = ChampionCatalog::opggNameForChampion(enemyName);
     for (const CounterRecord& counter : counters) {
@@ -844,25 +882,36 @@ bool pollChampSelectState(ChampSelectState& state, const bool autoImportRunes) {
         ? AnalysisCache{}
         : fetchChampionAnalysis(state.myChampionName, state.myPosition);
 
-    std::vector<std::string> visibleEnemies;
+    struct VisibleEnemy {
+        std::string name;
+        std::string position;
+    };
+    std::vector<VisibleEnemy> visibleEnemies;
     if (session["theirTeam"].isArray()) {
         for (const Json::Value& enemy : session["theirTeam"]) {
             const std::string enemyName = championNameFromParticipant(enemy, false);
             if (!enemyName.empty()) {
-                visibleEnemies.push_back(enemyName);
+                visibleEnemies.push_back(VisibleEnemy{enemyName, roleLabel(asString(enemy["assignedPosition"]))});
             }
         }
     }
 
-    for (const std::string& enemyName : visibleEnemies) {
-        EnemyChampionCounter counter = counterForEnemy(enemyName, analysis.counters);
+    for (const VisibleEnemy& enemy : visibleEnemies) {
+        EnemyChampionCounter counter = counterForEnemy(enemy.name, enemy.position, analysis.counters);
         if (!state.myChampionName.empty() && counter.myWinRate < 0.0) {
+            const std::string matchupPosition = enemy.position.empty() || enemy.position == "ANY"
+                ? state.myPosition
+                : enemy.position;
             const MatchupGuideRecommendation guide =
-                fetchMatchupGuide(state.myChampionName, enemyName, state.myPosition);
+                fetchMatchupGuide(state.myChampionName, enemy.name, matchupPosition);
             if (guide.counterOk) {
+                counter.position = guide.counter.position.empty() ? enemy.position : guide.counter.position;
                 counter.relation = guide.counter.relation;
                 counter.myWinRate = guide.counter.myWinRate;
                 counter.games = guide.counter.games;
+            } else if (guide.counter.relation != "NA") {
+                counter.position = guide.counter.position.empty() ? enemy.position : guide.counter.position;
+                counter.relation = guide.counter.relation;
             }
         }
         state.enemyCounters.push_back(counter);

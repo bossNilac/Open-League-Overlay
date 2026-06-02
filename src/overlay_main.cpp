@@ -385,6 +385,10 @@ RECT monitorWorkAreaForOverlay() {
 }
 
 OverlaySize overlaySizeForMode(const DisplayMode mode) {
+    if (g_state.champSelect.visible && !g_state.startScoreboard) {
+        return {470, 282};
+    }
+
     switch (mode) {
         case DisplayMode::SelfOnly:
             return {204, 112};
@@ -2033,9 +2037,11 @@ void drawChampSelectPanel(HDC hdc, const ChampSelectState& state, const RECT& re
         return;
     }
 
-    const int champX = x;
-    const int relationX = x + 118;
+    const int roleX = x;
+    const int champX = x + 36;
+    const int relationX = x + 164;
     const int wrX = rect.right - 88;
+    drawText(hdc, RECT{roleX, y, champX - 4, y + 15}, L"Role", MutedColor);
     drawText(hdc, RECT{champX, y, relationX - 4, y + 15}, L"Champion", EnemyColor);
     drawText(hdc, RECT{relationX, y, wrX - 4, y + 15}, L"Matchup", MutedColor);
     drawText(hdc, RECT{wrX, y, rect.right - 10, y + 15}, L"Agg WR", GoldColor, false, DT_RIGHT);
@@ -2045,6 +2051,8 @@ void drawChampSelectPanel(HDC hdc, const ChampSelectState& state, const RECT& re
         if (y + 15 > rect.bottom - 8) {
             break;
         }
+        drawText(hdc, RECT{roleX, y, champX - 4, y + 15},
+                 utf8ToWide(enemy.position.empty() ? "-" : enemy.position), MutedColor);
         drawText(hdc, RECT{champX, y, relationX - 4, y + 15}, compactLabel(enemy.championName, 14), EnemyColor);
         drawText(hdc, RECT{relationX, y, wrX - 4, y + 15}, utf8ToWide(enemy.relation), TextColor);
         drawText(hdc, RECT{wrX, y, rect.right - 10, y + 15}, formatPercent(enemy.myWinRate), GoldColor, false, DT_RIGHT);
