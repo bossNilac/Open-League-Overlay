@@ -1337,15 +1337,19 @@ void drawLocalStatsCard(HDC hdc, const RECT& rect) {
 void drawStatusCard(HDC hdc, const RECT& rect) {
     drawDashboardCard(hdc, rect, L"STATUS");
     int y = rect.top + 31;
+    g_state.startupToggleRect = RECT{0, 0, 0, 0};
     drawCardLine(hdc, y, rect, L"League match", L"Not detected");
     drawCardLine(hdc, y, rect, L"Live API", L"Waiting");
     drawCardLine(hdc, y, rect, L"Overlay", L"Ready", GoodColor);
     drawCardLine(hdc, y, rect, L"Snapshots", L"Enabled", GoodColor);
     drawCardLine(hdc, y, rect, L"Events", L"Enabled", GoodColor);
     drawCardLine(hdc, y, rect, L"Saved matches", std::to_wstring(g_state.savedMatchCount), GoldColor);
-    drawCardLine(hdc, y, rect, L"Start with Windows", g_state.settings.startWithWindows ? L"On" : L"Off",
-                 g_state.settings.startWithWindows ? GoodColor : MutedColor);
-    g_state.startupToggleRect = RECT{rect.right - 92, rect.bottom - 30, rect.right - 10, rect.bottom - 8};
+
+    drawText(hdc, RECT{rect.left + 10, y, rect.left + 130, y + 16}, L"Start with Windows", MutedColor);
+    drawText(hdc, RECT{rect.left + 134, y, rect.right - 100, y + 16},
+             g_state.settings.startWithWindows ? L"On" : L"Off",
+             g_state.settings.startWithWindows ? GoodColor : MutedColor);
+    g_state.startupToggleRect = RECT{rect.right - 92, y - 3, rect.right - 10, y + 19};
     drawPanel(hdc, g_state.startupToggleRect, RGB(32, 38, 46), BorderColor);
     drawText(hdc, g_state.startupToggleRect, g_state.settings.startWithWindows ? L"Disable" : L"Enable",
              GoldColor, false, DT_CENTER);
