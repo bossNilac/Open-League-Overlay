@@ -28,11 +28,6 @@ Get-FileHash .\OpenLeagueOverlay-v1.0.0-windows-x64.zip -Algorithm SHA256
 Compare the hash with `OpenLeagueOverlay-v1.0.0-windows-x64.zip.sha256`.
 
 ## Preview
-
-Screenshots are intentionally kept out of the repository until they are sanitized. Add censored PNGs with these filenames under `docs/screenshots/` and the previews below will render on GitHub.
-
-See [docs/screenshots/README.md](docs/screenshots/README.md) for capture guidelines.
-
 ### GUI Dashboard
 
 ![GUI dashboard](docs/screenshots/gui-dashboard.png)
