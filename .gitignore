@@ -1,0 +1,61 @@
+# Build output
+build/
+out/
+dist/
+release/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+*.ninja
+
+# IDE and local editor state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Logs, temp, cache
+*.log
+logs/
+cache/
+tmp/
+temp/
+*.tmp
+
+# Local/user game data
+performance/
+saved_matches/
+reports/
+snapshots/
+events/
+event_logs/
+match_history/
+user_data/
+AppData/
+LocalAppData/
+
+# Local settings/config
+config.json
+settings.json
+overlay_config.ini
+scoreboard_config.ini
+*.local.json
+*.local.ini
+
+# Packaging scratch backups
+.package-config-backup/
+.package-performance-backup/
+
+# Archives and generated release artifacts
+*.zip
+*.7z
+*.tar
+*.gz
+
+# Personal Codex prompt/task files
+codex-*.md
+features.md
+lol-tui-live-in-match-data.md
