@@ -3,63 +3,56 @@ project(LOL_overlay)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(LOL_overlay main.cpp
-        app_paths.cpp
-        app_paths.h
-        app_settings.cpp
-        app_settings.h
-        api/api_caller.cpp
-        api/api_caller.h
-        api/json_parser.cpp
-        api/json_parser.h
-        item_catalog.cpp
-        item_catalog.h
-        champion_catalog.cpp
-        champion_catalog.h
-        lcu_client.cpp
-        lcu_client.h
-        champ_select.cpp
-        champ_select.h
-        performance_scorer.cpp
-        performance_scorer.h
-        performance_tracker.cpp
-        performance_tracker.h
-        game_tui.cpp
-        game_tui.h
+set(COMMON_SOURCES
+        src/app_paths.cpp
+        src/app_settings.cpp
+        src/api/api_caller.cpp
+        src/api/json_parser.cpp
+        src/item_catalog.cpp
+        src/champion_catalog.cpp
+        src/lcu_client.cpp
+        src/champ_select.cpp
+        src/performance_scorer.cpp
+        src/performance_tracker.cpp
+)
+
+set(COMMON_HEADERS
+        include/app_paths.h
+        include/app_settings.h
+        include/api/api_caller.h
+        include/api/json_parser.h
+        include/item_catalog.h
+        include/champion_catalog.h
+        include/lcu_client.h
+        include/champ_select.h
+        include/performance_scorer.h
+        include/performance_tracker.h
+)
+
+add_executable(LOL_overlay
+        src/main.cpp
+        src/game_tui.cpp
+        include/game_tui.h
+        ${COMMON_SOURCES}
+        ${COMMON_HEADERS}
 )
 
 add_executable(LOL_overlay_gui WIN32
-        overlay_main.cpp
-        app_paths.cpp
-        app_paths.h
-        app_settings.cpp
-        app_settings.h
-        overlay_data.cpp
-        overlay_data.h
-        api/api_caller.cpp
-        api/api_caller.h
-        api/json_parser.cpp
-        api/json_parser.h
-        item_catalog.cpp
-        item_catalog.h
-        champion_catalog.cpp
-        champion_catalog.h
-        lcu_client.cpp
-        lcu_client.h
-        champ_select.cpp
-        champ_select.h
-        performance_scorer.cpp
-        performance_scorer.h
-        performance_tracker.cpp
-        performance_tracker.h
-        match_history.cpp
-        match_history.h
+        src/overlay_main.cpp
+        src/overlay_data.cpp
+        src/match_history.cpp
+        include/overlay_data.h
+        include/match_history.h
+        ${COMMON_SOURCES}
+        ${COMMON_HEADERS}
 )
+
+target_include_directories(LOL_overlay PRIVATE include)
+target_include_directories(LOL_overlay_gui PRIVATE include)
 
 find_package(CURL CONFIG REQUIRED)
 find_package(jsoncpp CONFIG REQUIRED)
-target_link_libraries(LOL_overlay PRIVATE CURL::libcurl)
-target_link_libraries(LOL_overlay PRIVATE jsoncpp_lib advapi32)
+target_link_libraries(LOL_overlay PRIVATE CURL::libcurl jsoncpp_lib advapi32)
 target_link_libraries(LOL_overlay_gui PRIVATE CURL::libcurl jsoncpp_lib user32 gdi32 advapi32)
 
 if (WIN32 AND MINGW)

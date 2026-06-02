@@ -112,6 +112,14 @@ Requirements used by this project:
 - MinGW toolchain
 - vcpkg dependencies for `curl` and `jsoncpp`
 
+Repository layout:
+
+- `src/` contains application implementation files.
+- `src/api/` contains local API transport/parser implementation files.
+- `include/` contains project headers.
+- `include/api/` contains API-related headers.
+- `scripts/` contains developer build and release packaging helpers.
+
 Example build commands from this repository:
 
 ```powershell
