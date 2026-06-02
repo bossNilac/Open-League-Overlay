@@ -51,6 +51,7 @@ scoreboard_config.ini
 
 # Archives and generated release artifacts
 *.zip
+*.zip.sha256
 *.7z
 *.tar
 *.gz

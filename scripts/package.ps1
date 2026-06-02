@@ -23,6 +23,7 @@ $releaseName = "OpenLeagueOverlay-v1.0.0-windows-x64"
 $distDir = Join-Path $repoRoot "dist\$releaseName"
 $distRoot = Join-Path $repoRoot "dist"
 $zipPath = Join-Path $repoRoot "dist\$releaseName.zip"
+$checksumPath = Join-Path $repoRoot "dist\$releaseName.zip.sha256"
 
 $repoRootFull = [System.IO.Path]::GetFullPath($repoRoot)
 $distRootFull = [System.IO.Path]::GetFullPath($distRoot)
@@ -71,7 +72,13 @@ if (Test-Path -LiteralPath $zipPathFull) {
 }
 Compress-Archive -Path (Join-Path $distDir "*") -DestinationPath $zipPathFull -Force
 
+$hash = Get-FileHash -LiteralPath $zipPathFull -Algorithm SHA256
+$checksumLine = "$($hash.Hash.ToLowerInvariant())  $releaseName.zip"
+Set-Content -LiteralPath $checksumPath -Value $checksumLine -Encoding ASCII
+
 Write-Host "Packaged portable executable folder:"
 Write-Host $distDirFull
 Write-Host "Zip:"
 Write-Host $zipPathFull
+Write-Host "SHA256:"
+Write-Host $checksumPath
